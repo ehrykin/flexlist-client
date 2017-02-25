@@ -27,7 +27,6 @@
  :active-list-colls
  (fn [db _]
    (let [active-list-id (:active-list-id db)]
-     (js/alert (:colls (get (:lists db) active-list-id)))
       (:colls (get (:lists db) active-list-id))
     )
   )
@@ -41,6 +40,14 @@
    )
   )
 )
+
+(re-frame/reg-sub
+ :show-add-grid-data-dialog?
+ (fn [db _]
+   (:show-add-grid-data-dialog? db)
+  )
+)
+
 ;;-------------------handlers------------------
 
 (re-frame/reg-event-fx
@@ -77,6 +84,20 @@
   ))
 )
 
+(re-frame/reg-event-db
+ :open-dialog-for-grid-data-addition
+  (fn [db _]
+   (assoc db :show-add-grid-data-dialog? true)
+  )
+)
+
+(re-frame/reg-event-db
+ :close-dialog-for-grid-data-addition
+  (fn [db _]
+   (assoc db :show-add-grid-data-dialog? false)
+  )
+)
+
 ;;-------------------views---------------------
 
 (defn add-field-panel [list-name]
@@ -105,37 +126,75 @@
    {::dt/pagination    {::dt/enabled? true}
     ::dt/table-classes ["ui" "table" "celled"]}])
 
-(comment (defn modal-dialog-for-add-data
+(defn merge-list-coll-info-to-colls-info-object [obj list-coll]
+  (let [col-name    (get (::dt/column-key list-coll) 0)
+        col-label   (get (::dt/column-key list-coll) 0)]
+    (assoc obj col-name {:label   col-label
+                         :type    :string
+                         :value   (reagent/atom "")}) ;;TODO make other data types support
+  )
+)
+
+(defn map-colls-info-object-to-widget [coll-info-object]
+  (let [coll-value  (:value coll-info-object)
+        coll-label  (:label coll-info-object)]
+    [
+      (when (not (nil? coll-label)) [re-com/title :label coll-label :level :level2])
+      [re-com/input-text
+        :model       coll-value
+        :on-change   #(reset! coll-value %)
+      ]
+    ]
+  )
+)
+
+(comment (defn list-colls-to-widgets [list-colls]
+ (let [colls-info-object (reduce merge-list-coll-info-to-colls-info-object {} list-colls)
+       widgets           (mapcat map-colls-info-object-to-widget (vals colls-info-object))
+       ]
+   (vec widgets)
+ )
+))
+
+(defn modal-dialog-for-add-data
   []
-  (let [show? (reagent/atom false)]
     (fn []
-      (let [list-colls         @(re-frame/subscribe [:active-list-colls])
-            input-vals-vec     (reduce #( ( %) ) {} list-colls)]
+      (let [list-colls @(re-frame/subscribe [:active-list-colls])
+            colls-info-object (reduce merge-list-coll-info-to-colls-info-object {} list-colls)
+            input-vals-vec (vec (mapcat map-colls-info-object-to-widget (vals colls-info-object))) ;;(list-colls-to-widgets @(re-frame/subscribe [:active-list-colls])))
+            ;;data-for-dispatch (map #({%}) colls-info-object)  ;;TODO get data to dispatch
+            dialog-box-widgets (concat [[re-com/title :level :level2 :label "Add data"]]
+                                        input-vals-vec
+                                         [
+                                           [re-com/h-box
+                                            :children
+                                             [
+                                               [re-com/button
+                                               :label "Close"
+                                               :on-click  #(re-frame/dispatch [:close-dialog-for-grid-data-addition])]
+
+                                               [re-com/button
+                                               :label "Add"
+                                               :on-click  #(re-frame/dispatch [:add-data-to-grid {}])] ;;TODO add data to dispatch
+                                              ]
+                                            ]
+                                          ])
+            ]
       [re-com/v-box
-       :children [[re-com/button
-                   :label    "Add data to grid"
-                   :class    "btn-info"
-                   :on-click #(reset! show? true)]
-                  (when @show?
+       :children [
+                  (when @(re-frame/subscribe [:show-add-grid-data-dialog?])
                     [re-com/modal-panel
-                     :backdrop-on-click #(reset! show? false)
+                     ;;:backdrop-on-click (re-frame/dispatch [:close-dialog-for-grid-data-addition])
                      :child [re-com/v-box
                              :width    "300px"
-                             :children (reduce conj [
-                                                      [re-com/title :level :level2 :label "Add data"]
-                                                      [re-com/gap :size "20px"]
-                                                     ]
-
-                                                      (map #([re-com/input-text :model ]) list-colls))
+                             :children dialog-box-widgets
                              ]
                      ]
                     )
                   ]
        ]
-       )
       )
     )
-)
 )
 
 (defn create-list-structure-panel [list-type-id]
@@ -158,7 +217,9 @@
 
                  [re-com/button
                   :label    "Add data"
-                  ];;:on-click  #(re-frame/dispatch [:open])]
+                  :on-click  #(re-frame/dispatch [:open-dialog-for-grid-data-addition])
+                 ]
+                 [modal-dialog-for-add-data]
                 ]
   ]
 )
