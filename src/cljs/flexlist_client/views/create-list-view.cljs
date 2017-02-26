@@ -34,7 +34,7 @@
       (:db
         (-> db
           (assoc-in [:db :lists {:list-id result}] {:label list-name
-                                                    :cols [{::dt/column-key [:index]}]})
+                                                    :cols [{::dt/column-key [:index]   ::dt/column-label "Index"}]})
           (assoc-in [:db :active-list-id] {:list-id result})
           (assoc-in [:db :active-panel] :create-list-structure-panel)
         )
@@ -49,7 +49,7 @@
       (:db
         (-> db
           (assoc-in [:db :lists test-list-id] {:label list-name
-                                               :colls [{::dt/column-key [:index]}]})
+                                               :colls [{::dt/column-key [:index]     ::dt/column-label "Index"}]})
           (assoc-in [:db :active-list-id] test-list-id)
           (assoc-in [:db :active-panel] :create-list-structure-panel)
         )

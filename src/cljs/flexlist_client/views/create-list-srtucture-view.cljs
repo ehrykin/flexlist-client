@@ -98,6 +98,18 @@
   )
 )
 
+(re-frame/reg-event-db
+ :add-data-to-table
+  (fn [db [_ data-info]]
+    (let [rows-count (count (:data (get (:lists db) (:active-list-id db))))]
+       (-> db
+         (assoc-in [:lists (:active-list-id db) :data] [])
+         (assoc-in [:lists (:active-list-id db) :data rows-count] data-info)
+       )
+    )
+  )
+)
+
 ;;-------------------views---------------------
 
 (defn add-field-panel [list-name]
@@ -148,23 +160,24 @@
   )
 )
 
-(comment (defn list-colls-to-widgets [list-colls]
- (let [colls-info-object (reduce merge-list-coll-info-to-colls-info-object {} list-colls)
-       widgets           (mapcat map-colls-info-object-to-widget (vals colls-info-object))
-       ]
-   (vec widgets)
+(defn get-data-for-dispatch [colls-info-object]
+ (let [coll-names (vec (keys colls-info-object))]
+   (into (sorted-map) (map   (fn [coll-name]
+              (let [coll-value  (get colls-info-object coll-name)]
+               [coll-name @(:value coll-value)]
+              )
+             ) coll-names))
  )
-))
+)
 
 (defn modal-dialog-for-add-data
   []
     (fn []
       (let [list-colls @(re-frame/subscribe [:active-list-colls])
             colls-info-object (reduce merge-list-coll-info-to-colls-info-object {} list-colls)
-            input-vals-vec (vec (mapcat map-colls-info-object-to-widget (vals colls-info-object))) ;;(list-colls-to-widgets @(re-frame/subscribe [:active-list-colls])))
-            ;;data-for-dispatch (map #({%}) colls-info-object)  ;;TODO get data to dispatch
+            input-widgets-vec (vec (mapcat map-colls-info-object-to-widget (vals colls-info-object))) ;;(list-colls-to-widgets @(re-frame/subscribe [:active-list-colls])))
             dialog-box-widgets (concat [[re-com/title :level :level2 :label "Add data"]]
-                                        input-vals-vec
+                                        input-widgets-vec
                                          [
                                            [re-com/h-box
                                             :children
@@ -175,7 +188,7 @@
 
                                                [re-com/button
                                                :label "Add"
-                                               :on-click  #(re-frame/dispatch [:add-data-to-grid {}])] ;;TODO add data to dispatch
+                                               :on-click  #(re-frame/dispatch [:add-data-to-table (get-data-for-dispatch colls-info-object)])]
                                               ]
                                             ]
                                           ])
