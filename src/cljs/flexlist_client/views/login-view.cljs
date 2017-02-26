@@ -11,13 +11,11 @@
 (re-frame/reg-event-fx
  :login
  (fn [db [_ info]]
-   (let [username  (:username  info)
-         password  (:password  info)]
+   (let [username  (:username  info)]
     {:db (assoc db :show-twirly true)   ;; causes the twirly-waiting-dialog to show
      :http-xhrio {:method          :post
                   :uri             "/login"
-                  :params          {:username username
-                                    :password password}
+                  :params          info
                   :timeout         5000
                   :format          (ajax/json-request-format)
                   :response-format (ajax/json-response-format {:keywords? true})
@@ -39,7 +37,7 @@
   (fn [db [_ username result]]
    (:db (-> db
             (assoc-in [:db :userid] username)
-            (assoc-in [:db :active-panel] :create-list-panel)
+            (assoc-in [:db :active-panel] :create-list-manually-or-by-csv-panel)
         )
    )
   )

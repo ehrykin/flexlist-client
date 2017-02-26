@@ -14,9 +14,10 @@
                                 }
                         }
      :active-list-id   1
-     :active-panel     :create-list-manually-or-by-csv-panel ;; :login-or-register-panel ;; :create-list-structure-panel ;; :create-list-panel
+     :active-panel     :login-or-register-panel ;; :login-or-register-panel ;; :create-list-structure-panel ;; :create-list-panel
      :show-twirly      false
      :show-add-grid-data-dialog? false
+     :show-add-grid-field-dialog? false
     }
 )
 

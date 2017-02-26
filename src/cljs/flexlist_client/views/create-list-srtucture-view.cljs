@@ -33,6 +33,13 @@
   )
 )
 
+(re-frame/reg-sub
+ :show-add-grid-field-dialog?
+ (fn [db _]
+   (:show-add-grid-field-dialog? db)
+  )
+)
+
 ;;-------------------handlers------------------
 
 (re-frame/reg-event-fx
@@ -95,24 +102,96 @@
   )
 )
 
+(re-frame/reg-event-db
+ :open-dialog-for-grid-field-addition
+  (fn [db _]
+   (assoc db :show-add-grid-field-dialog? true)
+  )
+)
+
+(re-frame/reg-event-db
+ :close-dialog-for-grid-field-addition
+  (fn [db _]
+   (assoc db :show-add-grid-field-dialog? false)
+  )
+)
+
 ;;-------------------views---------------------
 
-(defn add-field-panel [list-name]
+(def field-types [{:id :string :label "String"}
+                 {:id :integer :label "Integer"}
+                 {:id :float :label "Float"}
+                 {:id :date :label "Date"}
+                 ])
+
+(defn modal-dialog-for-add-field-panel [list-name]
   (let [active-list-id   @(re-frame/subscribe [:active-list-id])
-        field-type-id     :string]
-    [re-com/v-box
-     :size "30%"
-     :align-self :center
-     :margin      "5%"
-     :style {:backgroundColor "blue"}
-     :children [
-                [re-com/button
-                 :label    "Add field"
-                 :on-click  #(re-frame/dispatch [:add-field-to-active-list {:list-id        active-list-id
-                                                                            :field-type-id  field-type-id
-                                                                            :field-name     (str "test-field" (int (rand 100)))}])]
-                 ]
-     ])
+        field-name (reagent/atom "")
+        field-label (reagent/atom "")
+        field-type-id (reagent/atom nil)]
+    (when @(re-frame/subscribe [:show-add-grid-field-dialog?])
+                        [re-com/modal-panel
+                         ;;:backdrop-on-click (re-frame/dispatch [:close-dialog-for-grid-data-addition])
+                         :child
+                                  [re-com/v-box
+                                   :size "100%"
+                                   ;;:width "30%"
+                                   ;;:align-self :center
+                                   ;;:align :center
+                                   ;;:margin      "5%"
+                                   ;;:style {:backgroundColor "blue"}
+                                   :children [
+                                               [re-com/title
+                                                 :label "Add field"
+                                                 :level :level2]
+
+                                               [re-com/title
+                                                 :label "Name"
+                                                 :level :level3]
+                                              [re-com/input-text
+                                               :model        field-name
+                                               :on-change   #(reset! field-name %)]
+
+                                               [re-com/title
+                                                 :label "Label"
+                                                 :level :level3]
+                                              [re-com/input-text
+                                               :model        field-label
+                                               :on-change   #(reset! field-label %)]
+
+                                               [re-com/title
+                                                 :label "Type"
+                                                 :level :level3]
+                                              [re-com/single-dropdown
+                                               :choices field-types
+                                               :model   field-type-id
+                                               :width    "100%"
+                                               :on-change   #(reset! field-type-id %)]
+
+                                              [re-com/gap :size "10px"]
+
+                                              [re-com/h-box
+                                                :gap   "10px"
+                                                :children[
+
+                                                 [re-com/button
+                                                 :label    "Add field"
+                                                 :on-click  #(re-frame/dispatch [:add-field-to-active-list {:list-id        active-list-id
+                                                                                                            :field-type-id  @field-type-id
+                                                                                                            :field-name     @field-name
+                                                                                                            :field-label    @field-label}])]
+
+                                                 [re-com/button
+                                                 :label "Close"
+                                                 :on-click  #(re-frame/dispatch [:close-dialog-for-grid-field-addition])]
+                                                ]
+                                              ]
+                                  ]
+                                ]
+                           ]
+
+                        )
+    )
   )
 
 (defn list-grid []
@@ -155,7 +234,7 @@
  )
 )
 
-(defn modal-dialog-for-add-data
+(defn modal-dialog-for-add-data-panel
   []
     (fn []
       (let [list-colls @(re-frame/subscribe [:active-list-colls])
@@ -165,16 +244,18 @@
                                         input-widgets-vec
                                          [
                                            [re-com/h-box
+                                            :gap "10px"
                                             :children
                                              [
-                                               [re-com/button
-                                               :label "Close"
-                                               :on-click  #(re-frame/dispatch [:close-dialog-for-grid-data-addition])]
 
                                                [re-com/button
                                                :label "Add"
                                                :on-click  #(re-frame/dispatch [:add-data-to-table (get-data-for-dispatch colls-info-object)])]
-                                              ]
+
+                                               [re-com/button
+                                               :label "Close"
+                                               :on-click  #(re-frame/dispatch [:close-dialog-for-grid-data-addition])]
+                                             ]
                                             ]
                                           ])
             ]
@@ -207,17 +288,25 @@
                      :level :level1]
 
                  [re-com/h-box
+                  :align :stretch
+                  :width "100%"
                   :children [
 
                      [list-grid]
-                     [add-field-panel] ]
+
+                     [re-com/button
+                      :label    "Add field"
+                      :on-click  #(re-frame/dispatch [:open-dialog-for-grid-field-addition])
+                     ]
+                     [modal-dialog-for-add-field-panel]
+                    ]
                  ]
 
                  [re-com/button
                   :label    "Add data"
                   :on-click  #(re-frame/dispatch [:open-dialog-for-grid-data-addition])
                  ]
-                 [modal-dialog-for-add-data]
+                 [modal-dialog-for-add-data-panel]
                 ]
   ]
 )
