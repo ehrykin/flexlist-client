@@ -7,21 +7,6 @@
               [day8.re-frame.http-fx]))
 
 ;;-------------------subs------------------
-(re-frame/reg-sub
- :active-list-id
- (fn [db _]
-    (:active-list-id db)
-  )
-)
-
-(re-frame/reg-sub
- :active-list-name
- (fn [db _]
-   (let [active-list-id (:active-list-id db)]
-      (:label (get (:lists db) active-list-id))
-   )
-  )
-)
 
 (re-frame/reg-sub
  :active-list-colls

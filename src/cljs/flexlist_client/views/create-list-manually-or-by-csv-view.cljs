@@ -1,10 +1,11 @@
-(ns flexlist-client.views.create-list-view
+(ns flexlist-client.views.create-list-manually-or-by-csv-view
     (:require [re-frame.core :as re-frame]
               [re-com.core   :as re-com]
               [reagent.core  :as reagent]
               [ajax.core :as ajax]
               [day8.re-frame.http-fx]
-              [re-frame-datatable.core :as dt]))
+              [re-frame-datatable.core :as dt]
+              [flexlist-client.views.file-to-table-view :as file-to-table-view]))
 
 ;;-------------------subs------------------
 
@@ -12,25 +13,26 @@
 
 (re-frame/reg-event-fx
  :create-list
- (fn [db [_ list-type-id list-name]]
+ (fn [db [_ info]]
     {:db           (assoc db :show-twirly true)   ;; causes the twirly-waiting-dialog to show
      :http-xhrio  {:method          :post
                    :uri             "/create-list"
-                   :params          {:list-type-id   list-type-id
-                                     :list-name      list-name}
+                   :params          info
                    :timeout         5000
                    :format          (ajax/json-request-format)
                    :response-format (ajax/json-response-format {:keywords? true})
-                   :on-success      [:after-create-list-success list-type-id list-name]
-                   :on-failure      [:after-create-list-failure list-type-id list-name]
+                   :on-success      [:after-create-list-success info]
+                   :on-failure      [:after-create-list-failure info]
                    }
      }
-   )
-  )
+ )
+)
 
 (re-frame/reg-event-db
  :after-create-list-success
- (fn [db [_ list-type-id list-name result]] ;;TODO test
+ (fn [db [_ info result]] ;;TODO test
+   (let [list-type-id  (:list-type-id  info)
+         list-name     (:list-name     info)]
       (:db
         (-> db
           (assoc-in [:db :lists {:list-id result}] {:label list-name
@@ -39,13 +41,16 @@
           (assoc-in [:db :active-panel] :create-list-structure-panel)
         )
       )
+   )
   )
 )
 
 (re-frame/reg-event-db ;; TODO: replace with real failure handler
  :after-create-list-failure
-  (fn [db [_ list-type-id list-name result]]
-    (let [test-list-id (rand-int 1000)] ;;for prototype only
+  (fn [db [_ info result]]
+    (let [test-list-id  (rand-int 1000)  ;;for prototype only
+          list-type-id  (:list-type-id  info)
+          list-name     (:list-name     info)]
       (:db
         (-> db
           (assoc-in [:db :lists test-list-id] {:label list-name
@@ -80,10 +85,6 @@
      :margin      "5%"
      :children [
                  [re-com/title
-                   :label "Create list"
-                   :level :level1]
-
-                 [re-com/title
                    :label "List name"
                    :level :level3]
                 [re-com/input-text
@@ -104,8 +105,28 @@
 
                 [re-com/button
                  :label    "Create now!"
-                 :on-click  #(re-frame/dispatch [:create-list @list-type-id @list-name])]
+                 :on-click  #(re-frame/dispatch [:create-list {:list-type-id   @list-type-id
+                                                               :list-name      @list-name}])]
 
                  ]
      ])
-  )
+)
+
+(defn create-list-manually-or-by-csv-panel []
+  [re-com/v-box
+     :size "auto"
+     :align-self :center
+     :margin      "5%"
+     :children [
+                 [re-com/title
+                   :label "Create list manually or by csv-file"
+                   :level :level1]
+                 [re-com/h-box
+                    :children [
+                               [create-list-panel]
+                               [file-to-table-view/file-to-table-panel]
+                              ]
+                 ]
+    ]
+ ]
+)
