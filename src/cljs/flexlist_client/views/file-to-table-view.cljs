@@ -86,9 +86,9 @@
                                      reader     (new js/FileReader)
                                      list-type-id     0]
                                  (set! (.-onload reader) (fn[]
-                                                           (let [csv-data                   (-> reader .-result (csv/parse true ";") js->clj)
+                                                           (let [csv-data                   (-> reader .-result (csv/parse true ",") js->clj)
                                                                  coll-names                 (get csv-data 0)
-                                                                 coll-data-vectors          (vec (rest csv-data) )
+                                                                 coll-data-vectors          (doall (vec (rest csv-data) ))
                                                                  coll-name-symbols          (vec (map #(keyword %) coll-names))
                                                                  coll-data-object-vectors   (vec (map #(zipmap coll-name-symbols %) coll-data-vectors))
                                                                  active-list-id            @(re-frame/subscribe [:active-list-id])

@@ -293,6 +293,7 @@
                   :children [
 
                      [list-grid]
+                     [dt/default-pagination-controls :pagination [:active-list-data]]
 
                      [re-com/button
                       :label    "Add field"
